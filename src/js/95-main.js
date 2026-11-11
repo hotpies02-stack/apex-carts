@@ -48,6 +48,7 @@ function frame(now){requestAnimationFrame(frame);const raw=(now-last)/1000;last=
 }
 
 /* ---------------- startup ---------------- */
+{const ve=$("ver");if(ve)ve.textContent="v"+APEX_VERSION;}
 buildMenu();Snd.music('menu');
 const unlock=()=>{Snd.init();};addEventListener('pointerdown',unlock);addEventListener('keydown',unlock);
 {const q=new URLSearchParams(location.search),room=normCode(q.get('room')||'');if(room){const role=q.get('role')==='viewer'?'viewer':q.get('role')==='controller'||q.get('role')==='ctl'?'ctl':'player';

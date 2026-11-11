@@ -1,5 +1,6 @@
 'use strict';
 const APEX_VERSION='7.0.0';
+const PRELOAD=[];
 /* ==== 00-core.js ==== */
 function boot(){
 /* =====================================================================
@@ -1505,6 +1506,7 @@ function frame(now){requestAnimationFrame(frame);const raw=(now-last)/1000;last=
 }
 
 /* ---------------- startup ---------------- */
+{const ve=$("ver");if(ve)ve.textContent="v"+APEX_VERSION;}
 buildMenu();Snd.music('menu');
 const unlock=()=>{Snd.init();};addEventListener('pointerdown',unlock);addEventListener('keydown',unlock);
 {const q=new URLSearchParams(location.search),room=normCode(q.get('room')||'');if(room){const role=q.get('role')==='viewer'?'viewer':q.get('role')==='controller'||q.get('role')==='ctl'?'ctl':'player';
@@ -1513,8 +1515,40 @@ window.__apex={G,race,karts,get T(){return T;},Net,startSolo,TRACKS,selTrack,vie
 requestAnimationFrame(frame);
 }
 
+/* ==== 97-assets.js ==== */
+/* ---------------- asset pipeline (outside boot): glTF models, textures, HDRIs, audio ----------------
+   Every area registers what it needs in its own src/js/96-preload-<area>.js file:
+     PRELOAD.push({type:'glb',name:'kart_a',url:'assets/karts/a.glb'});
+     types: glb | tex (sRGB colour texture) | lin (linear data texture: normal/roughness) | hdr (equirect .hdr) | audio (decoded later by Snd) | json
+   Everything is fetched before boot() with a progress bar. A failed asset is only a console warning:
+   game code MUST fall back (Assets.has(name) / Assets.model(name) returning null) so the game still runs. */
+const Assets=(function(){
+  const store={glb:{},tex:{},lin:{},hdr:{},audio:{},json:{}};
+  function one(e){return new Promise(res=>{const done=v=>{if(v!=null)store[e.type][e.name]=v;res();},bad=err=>{console.warn('asset failed: '+e.url);res();};
+    try{
+      if(e.type==='glb'){new THREE.GLTFLoader().load(e.url,g=>done(g),undefined,bad);}
+      else if(e.type==='tex'||e.type==='lin'){new THREE.TextureLoader().load(e.url,t=>{t.encoding=e.type==='tex'?THREE.sRGBEncoding:THREE.LinearEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;if(e.flipY===false)t.flipY=false;done(t);},undefined,bad);}
+      else if(e.type==='hdr'){new THREE.RGBELoader().setDataType(THREE.HalfFloatType).load(e.url,t=>{t.mapping=THREE.EquirectangularReflectionMapping;done(t);},undefined,bad);}
+      else if(e.type==='audio'){fetch(e.url).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(done,bad);}
+      else if(e.type==='json'){fetch(e.url).then(r=>r.ok?r.json():Promise.reject()).then(done,bad);}
+      else res();
+    }catch(err){bad(err);}});}
+  return {store,
+    preload(list,onProg){let n=0;const tot=list.length||1;return Promise.all(list.map(e=>one(e).then(()=>{n++;if(onProg)onProg(n/tot);})));},
+    has(name,type){return !!store[type||'glb'][name];},
+    gltf(name){return store.glb[name]||null;},
+    /* fresh clone of a model's scene (geometries and materials are shared - clone a material before tinting it) */
+    model(name){const g=store.glb[name];if(!g)return null;return (THREE.SkeletonUtils&&g.scene.getObjectByProperty('type','SkinnedMesh'))?THREE.SkeletonUtils.clone(g.scene):g.scene.clone(true);},
+    tex(name){return store.tex[name]||store.lin[name]||null;},
+    hdr(name){return store.hdr[name]||null;},
+    audio(name){return store.audio[name]||null;},
+    json(name){return store.json[name]||null;}};
+})();
+
 /* ==== 99-loader.js ==== */
-/* loader: start once Three.js is present (with a fallback CDN) */
-(function(){const fail=()=>{const d=document.createElement('div');d.id='fatal';d.innerHTML='<div><h2>Could not load the 3D engine</h2><p class="note">Connect to the internet once (or use the offline copy) and reload.</p></div>';document.body.appendChild(d);};
-  const go=()=>{try{boot();}catch(e){console.error(e);const d=document.createElement('div');d.id='fatal';d.textContent='Startup error: '+e.message;document.body.appendChild(d);}};
-  if(window.THREE)go();else{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';s.onload=go;s.onerror=fail;document.head.appendChild(s);}})();
+/* loader: fetch assets (with progress), then start */
+(function(){const fail=()=>{const d=document.createElement('div');d.id='fatal';d.innerHTML='<div><h2>Could not load the 3D engine</h2><p class="note">Connect to the internet once and reload.</p></div>';document.body.appendChild(d);};
+  const go=()=>{const bar=document.querySelector('#loadBar i'),tip=document.getElementById('loadTip');if(tip&&PRELOAD.length)tip.textContent='Loading assets…';
+    const start=()=>{try{boot();}catch(e){console.error(e);const d=document.createElement('div');d.id='fatal';d.textContent='Startup error: '+e.message;document.body.appendChild(d);}};
+    Assets.preload(PRELOAD,f=>{if(bar&&bar.dataset)bar.style.setProperty('--p',f);}).then(start,start);};
+  if(window.THREE)go();else fail();})();

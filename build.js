@@ -6,7 +6,7 @@ const rd=f=>fs.readFileSync(f,'utf8');
 function cpDir(a,b){if(!fs.existsSync(a))return;fs.mkdirSync(b,{recursive:true});for(const e of fs.readdirSync(a,{withFileTypes:true})){const s=path.join(a,e.name),d=path.join(b,e.name);if(e.isDirectory())cpDir(s,d);else{if(!fs.existsSync(d)||fs.statSync(d).mtimeMs<fs.statSync(s).mtimeMs||fs.statSync(d).size!==fs.statSync(s).size)fs.copyFileSync(s,d);}}}
 fs.mkdirSync(OUT,{recursive:true});
 const parts=fs.readdirSync('src/js').filter(f=>f.endsWith('.js')).sort();
-const js="'use strict';\nconst APEX_VERSION='"+V+"';\n"+parts.map(f=>'/* ==== '+f+' ==== */\n'+rd('src/js/'+f)).join('\n');
+const js="'use strict';\nconst APEX_VERSION='"+V+"';\nconst PRELOAD=[];\n"+parts.map(f=>'/* ==== '+f+' ==== */\n'+rd('src/js/'+f)).join('\n');
 fs.writeFileSync(OUT+'/game.js',js);
 fs.writeFileSync(OUT+'/style.css',rd('src/style.css'));
 const libs=['three.min.js','GLTFLoader.js','RGBELoader.js','SkeletonUtils.js','BufferGeometryUtils.js'];
