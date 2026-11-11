@@ -1,0 +1,1 @@
+{"name":"apex-carts","private":true,"version":"7.0.0","scripts":{"build":"node build.js","test":"node build.js && cd tests && node run.js","deploy":"node build.js && firebase deploy --only hosting --project apex-carts-racing"}}

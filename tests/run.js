@@ -2,14 +2,15 @@
 // Flags: --fast (one track only), --shots (save screenshots to tests/out), --headed (visible browser, real GPU)
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');const http=require('http');
 const FAST=process.argv.includes('--fast'),SHOTS=process.argv.includes('--shots'),HEADED=process.argv.includes('--headed');
-const GAME=path.join(__dirname,'..','index.html'),OUT=path.join(__dirname,'out');
+const SITE=path.join(__dirname,'..','docs'),OUT=path.join(__dirname,'out');
 const three=fs.readFileSync(path.join(__dirname,'node_modules/three/build/three.min.js'));
 const peerReal=fs.readFileSync(path.join(__dirname,'node_modules/peerjs/dist/peerjs.min.js'));
 const peerFake=fs.readFileSync(path.join(__dirname,'fakepeer.js'));
 if(SHOTS)fs.mkdirSync(OUT,{recursive:true});
 let pass=0,fail=0;const results=[];
 function ok(name,cond,info){(cond?pass++:fail++);results.push((cond?'PASS ':'FAIL ')+name+(info!==undefined?'  '+info:''));console.log(results[results.length-1]);}
-const srv=http.createServer((q,r)=>{r.setHeader('content-type','text/html');r.end(fs.readFileSync(GAME));});
+const MIME={html:'text/html',js:'application/javascript',css:'text/css',json:'application/json',glb:'model/gltf-binary',gltf:'model/gltf+json',bin:'application/octet-stream',png:'image/png',jpg:'image/jpeg',webp:'image/webp',hdr:'application/octet-stream',svg:'image/svg+xml',mp3:'audio/mpeg',ogg:'audio/ogg',wav:'audio/wav',webmanifest:'application/manifest+json'};
+const srv=http.createServer((q,r)=>{let u=decodeURIComponent(q.url.split('?')[0]);if(u.endsWith('/'))u+='index.html';const f=path.join(SITE,u);if(!f.startsWith(SITE)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.statusCode=404;return r.end('nf');}r.setHeader('content-type',MIME[f.split('.').pop()]||'application/octet-stream');r.end(fs.readFileSync(f));});
 const args=HEADED?['--ignore-gpu-blocklist']:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'];
 async function open(ctx,base,url,{touch=false,low=true,fake=false,errs}={}){
   const p=await ctx.newPage();

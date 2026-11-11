@@ -1,0 +1,7 @@
+node_modules
+tests/out
+report/
+assets-src/
+.firebase/
+*.log
+.claude/settings.local.json

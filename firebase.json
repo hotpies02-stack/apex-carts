@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "public": "docs",
+    "ignore": ["**/.*"],
+    "headers": [
+      {"source": "/assets/**", "headers": [{"key": "Cache-Control", "value": "public,max-age=604800"}]},
+      {"source": "/lib/**", "headers": [{"key": "Cache-Control", "value": "public,max-age=604800"}]},
+      {"source": "**/*.@(js|css|html)", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
+    ]
+  },
+  "firestore": {"rules": "firestore.rules", "indexes": "firestore.indexes.json"}
+}
