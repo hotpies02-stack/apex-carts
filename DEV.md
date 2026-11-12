@@ -20,7 +20,12 @@ External CC0 assets are allowed. No pay-to-use services (Firebase Spark plan onl
 - Screenshot: `node tools/shot.js <0|1|2|menu> out.png --t=16 --q=high` (prints fps, GPU and console errors as JSON; LOOK at the PNG with the Read tool)
 - In a git worktree `tests/node_modules` is missing: create a junction once:
   `cmd //c mklink /J tests\\node_modules C:\\Apex-Carts\\tests\\node_modules`
-- This laptop has 8 GB RAM: run only ONE browser/test at a time, never leave browsers open.
+- This laptop has 8 GB RAM and has crashed from memory pressure. EVERY command that starts a browser (tests, `tools/shot.js`)
+  MUST be run through the lock wrapper, which queues it behind other worktrees' runs:
+  `node tools/withlock.js node tools/shot.js 2 out.png --t=16 --q=high`
+  `cd tests && node ../tools/withlock.js node run.js --fast`
+  Never run a browser without it, never run two at once, never leave browsers open. Run the fast tests sparingly (once or twice near the end), screenshots as needed.
+- COMMIT EARLY AND OFTEN on your branch (after every working step). The machine can crash; uncommitted work is lost.
 
 ## Assets
 - CC0 / public-domain ONLY (Kenney, Quaternius, Poly Haven, ambientCG, poly.pizza CC0 items, OpenGameArt CC0). Check each file's licence. Record every asset in `assets/CREDITS.md` (name, author, source URL, licence).
